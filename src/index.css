@@ -872,3 +872,16 @@ code {
 .chosen-icons .node-emoji { font-size: 17px; }
 .icon-page { overflow-y: auto; min-height: 0; scrollbar-width: thin; }
 .icon-page fieldset { margin: 9px 0; }
+
+.icon-search { display: flex; align-items: center; gap: 7px; padding: 4px 9px; border: 1px solid var(--border); border-radius: 7px; color: var(--text-muted); }
+.icon-search:focus-within { border-color: var(--accent); }
+.icon-search input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: var(--text); font: inherit; font-size: 13px; }
+.icon-search input::-webkit-search-cancel-button { display: none; }
+.node-icon-picker .icon-search button { width: 24px; height: 24px; border: 0; }
+.icon-page fieldset > .emoji-tiles { grid-template-columns: repeat(auto-fill,minmax(52px,1fr)); gap: 5px; }
+.icon-page .emoji-tiles button { height: 52px; align-content: center; gap: 3px; }
+.emoji-caption { font-size: 10px; line-height: 13px; color: var(--text-muted); }
+.icon-page button { position: relative; }
+.icon-tick { position: absolute; right: 1px; top: 1px; color: var(--accent); stroke-width: 3; }
+.icon-page p { color: var(--text-muted); font-size: 13px; }
+.chosen-icons { max-height: 70px; overflow-y: auto; }

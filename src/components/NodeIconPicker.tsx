@@ -1,3 +1,4 @@
+import { Search, X, Check } from 'lucide-react'
 import { useState } from 'react'
 import { nodeIconList } from 'simple-mind-map/src/svg/icons.js'
 import { emojiGroups } from '../mindmap/nodeEmoji'
@@ -25,23 +26,42 @@ function IconFace({ item }: { item: Item }) {
 
 export function NodeIconPicker({ icons, onChange }: { icons: string[]; onChange: (icons: string[]) => void }) {
   const [page,setPage] = useState('Emoji')
+  const [query,setQuery] = useState('')
+  const normalize = (text: string) => text.normalize('NFKC').replace(/[\uFE0E\uFE0F]/g,'').trim().toLowerCase()
+  const term = normalize(query)
+  const visibleGroups = term ? Object.entries(pages).flatMap(([category,groups]) =>
+    groups.map(group => ({
+      ...group, items: group.items.filter(item =>
+        normalize([category,group.name,item.label,item.glyph].join(' ')).includes(term)),
+    })).filter(group => group.items.length > 0)) : pages[page]
+
   function toggle(id: string) {
     if (icons.includes(id)) { onChange(icons.filter(v => v !== id)); return }
     const exclusive = id.match(/^(priority_|progress_)/)?.[0]
     onChange([...(exclusive ? icons.filter(v => !v.startsWith(exclusive)) : icons),id])
   }
   return <div className="node-icon-picker">
-    <nav className="icon-categories" aria-label="图标类别">{Object.keys(pages).map(key =>
-      <button key={key} type="button" aria-pressed={page === key} onClick={() => setPage(key)}>{key}</button>)}</nav>
-    {icons.length > 0 && <div className="chosen-icons"><small>已选</small>{icons.map(id => {
+    <div className="icon-search"><Search size={15} aria-hidden="true" />
+      <input type="search" aria-label="搜索全部节点图标" placeholder="搜索名称、类别或 Emoji" value={query}
+        onChange={e => setQuery(e.target.value)} onKeyDown={e => {
+          if (e.key === 'Enter' && !e.nativeEvent.isComposing && e.nativeEvent.keyCode !== 229) e.preventDefault()
+        }} />
+      {query && <button type="button" aria-label="清除搜索" onClick={() => setQuery('')}><X size={14} /></button>}
+    </div>
+    {!term && <nav className="icon-categories"  aria-label="图标类别">{Object.keys(pages).map(key =>
+      <button key={key} type="button" aria-pressed={page === key} onClick={() => setPage(key)}>{key}</button>)}</nav>}
+    {icons.length > 0 && <div className="chosen-icons"><small>已选 {icons.length}</small>{icons.map(id => {
       const item = lookup.get(id)
       return <button type="button" key={id} title={'移除 ' + (item?.label ?? id)} aria-label={'移除 ' + (item?.label ?? id)}
         onClick={() => toggle(id)}>{item ? <IconFace item={item} /> : id}</button>
     })}</div>}
-    <div className="icon-page">{pages[page].map(group => <fieldset key={group.name}>
-      <legend>{group.name}</legend><div>{group.items.map(item =>
+    <div className="icon-page" key={term ? "search" : page}>{!visibleGroups.length && <p role="status">没有找到匹配的图标，试试「会议」或「进度」。</p>}{visibleGroups.map(group => <fieldset key={group.name}>
+      <legend>{group.name}</legend><div className={group.items[0]?.glyph ? "emoji-tiles" : undefined}>{group.items.map(item =>
         <button type="button" key={item.id} title={item.label} aria-label={item.label}
-          aria-pressed={icons.includes(item.id)} onClick={() => toggle(item.id)}><IconFace item={item} /></button>)}</div>
+          aria-pressed={icons.includes(item.id)} onClick={() => toggle(item.id)}><IconFace item={item} />
+          {item.glyph && <span className="emoji-caption">{item.label}</span>}
+          {icons.includes(item.id) && <Check className="icon-tick" size={11} aria-hidden="true" />}
+        </button>)}</div>
     </fieldset>)}</div>
   </div>
 }
