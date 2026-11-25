@@ -141,7 +141,7 @@ export function EditorTools({ api, layout, theme, onChange, onLayout, onTheme }:
     api?.painter.onEndPainter()
     api?.updateConfig({ useLeftKeySelectionRightKeyDrag: next })
     setBoxSelect(next)
-    setHint(next ? '在画布空白处按住左键拖动，框选多个节点' : '在画布空白处按住左键拖动，平移画布')
+    setHint(next ? '在画布空白处按住左键拖动，框选多个节点' : '拖动节点或空白处平移画布；Alt + 拖动可移动节点')
   }
   const copy = () => {
     api?.renderer.copy()
@@ -182,8 +182,8 @@ export function EditorTools({ api, layout, theme, onChange, onLayout, onTheme }:
   return <>
     <div className="map-tools" role="toolbar" aria-label="导图编辑工具">
       <div className="tool-group mode-group" role="group" aria-label="鼠标模式">
-        <button className="btn" aria-pressed={!boxSelect} disabled={!api} onClick={() => switchMode(false)} title="左键拖动画布"><Hand size={18} />拖动</button>
-        <button className="btn" aria-pressed={boxSelect} disabled={!api} onClick={() => switchMode(true)} title="左键拖动框选节点"><BoxSelect size={18} />框选</button>
+        <button className="btn" aria-pressed={!boxSelect} disabled={!api} onClick={() => switchMode(false)} title="拖动节点或空白处平移；Alt + 拖动移动节点"><Hand size={18} />拖动</button>
+        <button className="btn" aria-pressed={boxSelect} disabled={!api} onClick={() => switchMode(true)} title="左键拖动框选；按住空格拖动可临时平移"><BoxSelect size={18} />框选</button>
       </div>
       <div className="tool-group" role="group" aria-label="编辑">
       {action('撤销', () => command('BACK'), false)}{action('重做', () => command('FORWARD'), false)}

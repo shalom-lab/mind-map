@@ -2,6 +2,7 @@ declare module 'simple-mind-map' {
   export type MindMapOptions = Record<string, unknown>
 
   export interface MindMapInstance {
+    getConfig(key: string): unknown
     updateConfig(options: Record<string, unknown>): void
     emit(event: string, ...args: unknown[]): void
     select: { hasSelectRange(): boolean }
@@ -54,6 +55,7 @@ declare module 'simple-mind-map' {
       getTransformData: () => unknown
       setTransformData: (data: unknown) => void
       scale: number
+      translateXY(x: number, y: number): void
       narrow: () => void
       enlarge: () => void
       fit: () => void

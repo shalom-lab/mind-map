@@ -1,3 +1,4 @@
+import { bindCanvasPan } from '../mindmap/canvasPan'
 import { useEffect, useRef } from 'react'
 import type { MindMapInstance } from 'simple-mind-map'
 import type { MindMapFullData } from '../types/map'
@@ -29,6 +30,7 @@ export function MindMapCanvas({ data, sceneKey, onReady, onChange }: Props) {
     if (!el) return
 
     const api = createMindMap({ el, data: dataRef.current })
+    const unbindPan = bindCanvasPan(el, api)
     apiRef.current = api
 
     const handleChange = () => {
@@ -44,6 +46,7 @@ export function MindMapCanvas({ data, sceneKey, onReady, onChange }: Props) {
     onReadyRef.current(api)
 
     return () => {
+      unbindPan()
       ro.disconnect()
       api.off('data_change', handleChange)
       api.destroy()

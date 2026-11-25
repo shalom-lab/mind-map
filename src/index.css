@@ -843,3 +843,7 @@ code {
 .outline-edit { margin: 3px 0; border: 1px solid var(--accent); background: var(--bg-elevated); border-radius: 6px; box-shadow: 0 0 0 2px var(--accent-soft); }
 .outline-edit textarea, .outline-edit .ql-editor { width: 100%; font: inherit; color: var(--text); padding: 5px 7px; line-height: 1.45; overflow-wrap: anywhere; }
 .outline-edit textarea { display: block; resize: vertical; border: 0; outline: none; background: transparent; }
+
+.canvas:has(.mode-group button:first-child[aria-pressed=true]) .mind-canvas { cursor: grab; }
+.canvas .mind-canvas.pan-ready, .canvas .mind-canvas.pan-ready * { cursor: grab !important; }
+.canvas .mind-canvas.pan-active, .canvas .mind-canvas.pan-active * { cursor: grabbing !important; }
