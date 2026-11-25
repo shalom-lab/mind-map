@@ -1,3 +1,4 @@
+import { EditableOutline } from './EditableOutline'
 import { ColorField } from './StyleControls'
 import { FrameDialog } from './FrameDialog'
 import { BaseStyles } from './BaseStyles'
@@ -12,7 +13,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { MindMapInstance } from 'simple-mind-map'
 import { LAYOUTS } from '../mindmap/layouts'
 import { THEMES } from '../mindmap/themes'
-import { titleFromNode, type MindMapNode } from '../types/map'
+import type { MindMapNode } from '../types/map'
 
 type Props = {
   api: MindMapInstance | null
@@ -46,14 +47,6 @@ const nodeCommands = [
   ['删除节点', 'REMOVE_NODE'], ['仅删除当前节点', 'REMOVE_CURRENT_NODE'],
   ['清除节点样式', 'REMOVE_CUSTOM_STYLES'],
 ]
-
-function Outline({ node, jump }: { node: MindMapNode; jump: (id: string) => void }) {
-  return <li>
-    <button onClick={() => jump(String(node.data.uid))}>{titleFromNode(node) || '空白节点'}</button>
-    {!!node.children?.length && <ul>{node.children.map((child, i) =>
-      <Outline key={String(child.data.uid ?? i)} node={child} jump={jump} />)}</ul>}
-  </li>
-}
 
 export function EditorTools({ api, layout, theme, onChange, onLayout, onTheme }: Props) {
   const [boxSelect, setBoxSelect] = useState(false)
@@ -241,7 +234,7 @@ export function EditorTools({ api, layout, theme, onChange, onLayout, onTheme }:
             <span>{t.label}{theme === t.value && <Check size={13} aria-hidden />}</span>
           </button>)}
         </div></section>)}
-      {panel === '大纲' && outline && <ul><Outline node={outline} jump={id => command('GO_TARGET_NODE', id)} /></ul>}
+      {panel === '大纲' && outline && api && <ul className="editable-outline"><EditableOutline node={outline} api={api} /></ul>}
       {panel === '基础样式' && api && <BaseStyles key={theme} api={api} onChange={onChange} />}
       {panel === '节点样式' && (selected ? <div className="style-inspector">
         <section className="property-section"><h3>文字</h3>
