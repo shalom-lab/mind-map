@@ -1,3 +1,4 @@
+import { emojiIconList } from './nodeEmoji'
 import MiniMap from 'simple-mind-map/src/plugins/MiniMap.js'
 import Search from 'simple-mind-map/src/plugins/Search.js'
 import Demonstrate from 'simple-mind-map/src/plugins/Demonstrate.js'
@@ -65,6 +66,7 @@ export function createMindMap({ el, data }: CreateMindMapInput): MindMapInstance
     themeConfig: data.theme?.config || {},
     viewData: data.view || undefined,
     readonly: false,
+    iconList: emojiIconList,
     errorHandler(code: string, error: unknown) {
       if (code === 'read_clipboard_error') {
         if (api.renderer.beingCopyData?.length) {

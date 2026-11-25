@@ -1,4 +1,4 @@
-import { nodeIconList } from 'simple-mind-map/src/svg/icons.js'
+import { NodeIconPicker } from './NodeIconPicker'
 import { useEffect, useRef, useState } from 'react'
 import type { MindMapInstance } from 'simple-mind-map'
 
@@ -37,16 +37,7 @@ export function NodeField({ api, field, onClose }: Props) {
   return <dialog ref={ref} className="modal import-dialog" onCancel={onClose} onKeyDown={e => e.stopPropagation()}>
     <form onSubmit={e => { e.preventDefault(); save() }}>
       <header className="modal-header"><h2>{fields[field]}</h2></header>
-      {field === 'icon' ? <div className="node-icon-picker">{nodeIconList.map(group => <fieldset key={group.type}>
-        <legend>{group.name}</legend><div>{group.list.map(item => {
-          const id = group.type + '_' + item.name
-          return <button type="button" key={id} aria-label={group.name + ' ' + item.name} title={group.name + ' ' + item.name}
-            aria-pressed={icons.includes(id)} onClick={() => setIcons(prev => {
-              if (prev.includes(id)) return prev.filter(v => v !== id)
-              const rest = ['priority','progress'].includes(group.type) ? prev.filter(v => !v.startsWith(group.type + '_')) : prev
-              return [...rest,id]
-            })}><img alt="" src={'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(item.icon)} /></button>
-        })}</div></fieldset>)}</div> :
+      {field === 'icon' ? <NodeIconPicker icons={icons} onChange={setIcons} /> :
         <label className="field"><span>{{note:'备注内容', tag:'多个标签用逗号分隔', hyperlink:'链接地址', formula:'LaTeX 表达式'}[field]}</span>
           <textarea rows={field === 'note' ? 6 : 2} autoFocus value={value} onChange={e => setValue(e.target.value)} />
         </label>}
