@@ -1,7 +1,7 @@
 import { deleteFile, getFile, listMaps, mapPath, putFile } from '../github/client'
 import { isConfigured } from '../github/storage'
 import { friendlyGithubError, type GithubSettings } from '../github/types'
-import { createDocument, type LocalMapRecord, type MapDocument } from '../types/map'
+import { createDocument, type LocalMapRecord, type MapDocument, type MindMapFullData } from '../types/map'
 import {
   loadAllLocal,
   loadLocal,
@@ -23,8 +23,9 @@ export async function listVisibleMaps(): Promise<LocalMapRecord[]> {
   return all.filter((m) => !m.deleted)
 }
 
-export async function createLocalMap(title = '未命名导图'): Promise<LocalMapRecord> {
+export async function createLocalMap(title = '未命名导图', data?: MindMapFullData): Promise<LocalMapRecord> {
   const doc = createDocument(title)
+  if (data) doc.mindMap = data
   const record: LocalMapRecord = {
     ...doc,
     path: null,

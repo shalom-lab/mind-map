@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { ImportDialog } from './components/ImportDialog'
 import { SettingsModal } from './components/SettingsModal'
 import {
   createLocalMap,
@@ -12,7 +13,7 @@ import {
 } from './draft/sync'
 import { isConfigured, loadSettings } from './github/storage'
 import { friendlyGithubError, type GithubSettings } from './github/types'
-import { EditorPage } from './pages/EditorPage'
+const EditorPage = lazy(() => import('./pages/EditorPage').then(module => ({ default: module.EditorPage })))
 import { HomePage } from './pages/HomePage'
 import type { LocalMapRecord, MapDocument } from './types/map'
 
@@ -20,6 +21,7 @@ type Toast = { kind: 'info' | 'error'; text: string }
 
 export default function App() {
   const [settings, setSettings] = useState<GithubSettings>(() => loadSettings())
+  const [importOpen, setImportOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [maps, setMaps] = useState<LocalMapRecord[]>([])
   const [active, setActive] = useState<LocalMapRecord | null>(null)
@@ -170,8 +172,8 @@ export default function App() {
     }
   }
 
-  const handleLocalDraft = (doc: MapDocument) => {
-    void saveMapLocal(doc, { dirty: true, deleted: false }).then((record) => {
+  const handleLocalDraft = async (doc: MapDocument) => {
+    await saveMapLocal(doc, { dirty: true, deleted: false }).then((record) => {
       setActive((prev) => (prev && prev.id === record.id ? { ...prev, ...record } : prev))
     })
   }
@@ -194,6 +196,7 @@ export default function App() {
   return (
     <div className="app">
       {active ? (
+        <Suspense fallback={<div className="boot">正在打开导图…</div>}>
         <EditorPage
           key={active.id}
           record={active}
@@ -203,15 +206,19 @@ export default function App() {
             setActive(null)
             void reloadLocal()
           }}
+          onImport={() => setImportOpen(true)}
+          onNew={() => void handleNew()}
           onSave={handleSave}
           onOpenSettings={() => setSettingsOpen(true)}
           onLocalDraft={handleLocalDraft}
         />
+        </Suspense>
       ) : (
         <HomePage
           settings={settings}
           maps={maps}
           busy={busy}
+          onImport={() => setImportOpen(true)}
           onNew={() => void handleNew()}
           onOpen={(id) => void handleOpen(id)}
           onRename={handleRename}
@@ -220,6 +227,12 @@ export default function App() {
           onOpenSettings={() => setSettingsOpen(true)}
         />
       )}
+
+      {importOpen && <ImportDialog onClose={() => setImportOpen(false)} onImport={async (title, data) => {
+        const record = await createLocalMap(title, data)
+        setActive(record)
+        await reloadLocal()
+      }} />}
 
       <SettingsModal
         open={settingsOpen}

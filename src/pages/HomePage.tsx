@@ -13,6 +13,7 @@ interface Props {
   settings: GithubSettings
   maps: LocalMapRecord[]
   busy: boolean
+  onImport: () => void
   onNew: () => void
   onOpen: (id: string) => void
   onRename: (id: string, title: string) => Promise<void>
@@ -37,6 +38,7 @@ export function HomePage({
   settings,
   maps,
   busy,
+  onImport,
   onNew,
   onOpen,
   onRename,
@@ -80,6 +82,7 @@ export function HomePage({
           <button type="button" className="btn" onClick={onOpenSettings}>
             设置
           </button>
+          <button type="button" className="btn" onClick={onImport} disabled={busy}>导入</button>
           <button type="button" className="btn primary" onClick={onNew} disabled={busy}>
             新建导图
           </button>

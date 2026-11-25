@@ -2,6 +2,25 @@ declare module 'simple-mind-map' {
   export type MindMapOptions = Record<string, unknown>
 
   export interface MindMapInstance {
+    renderer: {
+      activeNodeList: { getData: (key: string) => unknown }[]
+      copy: () => void
+      cut: () => void
+      paste: () => Promise<void>
+    }
+    demonstrate: { enter(): void }
+    miniMap: {
+      calculationMiniMap(width: number,height: number): { svgHTML: string; viewBoxStyle: Record<string,string> }
+      onMousedown(event: PointerEvent): void
+      onMousemove(event: PointerEvent): void
+      onViewBoxMousedown(event: PointerEvent): void
+      onViewBoxMousemove(event: PointerEvent): void
+      onMouseup(): void
+    }
+    search: { search(text: string): void; replace(text: string, next: boolean): void; replaceAll(text: string): void; endSearch(): void }
+    richText: { formatText: (style: Record<string, unknown>) => void; removeFormat: () => void }
+    painter: { startPainter: () => void }
+    associativeLine: { createLineFromActiveNode: () => void }
     resize: () => void
     destroy: () => void
     getData: (withConfig?: boolean) => unknown
@@ -11,6 +30,8 @@ declare module 'simple-mind-map' {
     getLayout: () => string
     setTheme: (theme: string, notRender?: boolean) => void
     getTheme: () => string
+    getThemeConfig(): Record<string, unknown>
+    getCustomThemeConfig(): Record<string, unknown>
     setThemeConfig: (config: unknown, notRender?: boolean) => void
     execCommand: (name: string, ...args: unknown[]) => void
     export: (
@@ -24,6 +45,9 @@ declare module 'simple-mind-map' {
     view: {
       getTransformData: () => unknown
       setTransformData: (data: unknown) => void
+      scale: number
+      narrow: () => void
+      enlarge: () => void
       fit: () => void
     }
   }
@@ -37,6 +61,10 @@ declare module 'simple-mind-map' {
   const MindMap: MindMapConstructor
   export default MindMap
 }
+
+declare module 'simple-mind-map/src/plugins/Painter.js'
+declare module 'simple-mind-map/src/plugins/AssociativeLine.js'
+declare module 'simple-mind-map/src/plugins/OuterFrame.js'
 
 declare module 'simple-mind-map/src/plugins/Drag.js' {
   const plugin: unknown
@@ -92,4 +120,19 @@ declare module 'simple-mind-map-plugin-themes/themeList' {
   }
   const themeList: ThemeListItem[]
   export default themeList
+}
+declare module 'simple-mind-map/src/plugins/RichText.js'
+declare module 'simple-mind-map/src/plugins/Formula.js'
+
+declare module 'simple-mind-map/src/parse/xmind.js' {
+  const parser: { parseXmindFile(file: File): Promise<import('./types/map').MindMapNode> }
+  export default parser
+}
+
+declare module 'simple-mind-map/src/plugins/MiniMap.js'
+declare module 'simple-mind-map/src/plugins/Demonstrate.js'
+declare module 'simple-mind-map/src/plugins/Search.js' {
+  export default class Search {
+    getReplacedText(node: unknown, searchText: string, replaceText: string): string
+  }
 }

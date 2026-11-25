@@ -1,21 +1,23 @@
+import { CanvasNavigation } from '../components/CanvasNavigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { MindMapInstance } from 'simple-mind-map'
+import { EditorTools } from '../components/EditorTools'
 import { MindMapCanvas } from '../components/MindMapCanvas'
 import { isConfigured } from '../github/storage'
 import type { GithubSettings } from '../github/types'
 import { EXPORT_FORMATS, type ExportFormat } from '../mindmap/engine'
-import { LAYOUTS } from '../mindmap/layouts'
-import { THEMES } from '../mindmap/themes'
 import type { LocalMapRecord, MapDocument, MindMapFullData } from '../types/map'
 
 interface Props {
   record: LocalMapRecord
   settings: GithubSettings
   busy: boolean
+  onImport: () => void
+  onNew: () => void
   onBack: () => void
   onSave: (doc: MapDocument) => Promise<void>
   onOpenSettings: () => void
-  onLocalDraft: (doc: MapDocument) => void
+  onLocalDraft: (doc: MapDocument) => Promise<void>
 }
 
 function readFullData(api: MindMapInstance): MindMapFullData {
@@ -32,12 +34,15 @@ export function EditorPage({
   record,
   settings,
   busy,
+  onNew,
+  onImport,
   onBack,
   onSave,
   onOpenSettings,
   onLocalDraft,
 }: Props) {
   const apiRef = useRef<MindMapInstance | null>(null)
+  const [canvasApi, setCanvasApi] = useState<MindMapInstance | null>(null)
   const [title, setTitle] = useState(record.title)
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState(record.title)
@@ -46,6 +51,12 @@ export function EditorPage({
   const [theme, setTheme] = useState(record.mindMap.theme?.template || 'default')
   const [dirty, setDirty] = useState(record.dirty)
   const [exporting, setExporting] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
+  const [format, setFormat] = useState<ExportFormat>('png')
+  const [filename, setFilename] = useState('')
+  const [withConfig, setWithConfig] = useState(true)
+  const [transparent, setTransparent] = useState(false)
+  const [exportError, setExportError] = useState('')
   const configured = isConfigured(settings)
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const metaRef = useRef({ title: record.title, dirty: record.dirty })
@@ -98,6 +109,7 @@ export function EditorPage({
 
   const handleReady = useCallback((api: MindMapInstance) => {
     apiRef.current = api
+    setCanvasApi(api)
   }, [])
 
   const commitTitle = () => {
@@ -122,11 +134,6 @@ export function EditorPage({
     scheduleDraft()
   }
 
-  const exec = (cmd: string) => {
-    apiRef.current?.execCommand(cmd)
-    scheduleDraft()
-  }
-
   const handleSave = async () => {
     const doc = currentDoc()
     if (!doc) return
@@ -137,12 +144,32 @@ export function EditorPage({
     await onSave(doc)
   }
 
-  const handleExport = async (type: ExportFormat) => {
+  const leaveEditor = async (next: () => void) => {
+    if (dirty || draftTimerRef.current) {
+      const doc = currentDoc()
+      if (doc) {
+        if (draftTimerRef.current) clearTimeout(draftTimerRef.current)
+        draftTimerRef.current = null
+        try { await onLocalDraft(doc) }
+        catch { window.alert('本地草稿保存失败，请先导出备份。'); return }
+      }
+    }
+    next()
+  }
+
+  const handleExport = async () => {
     const api = apiRef.current
     if (!api) return
     setExporting(true)
     try {
-      await api.export(type, true, title.trim() || '思维导图')
+      setExportError('')
+      const args = format === 'json' || format === 'smm' ? [withConfig]
+        : format === 'png' ? [transparent] : []
+      const result = await api.export(format, true, filename.trim(), ...args)
+      if (!result) throw new Error('导出失败，请重试或选择其他格式。')
+      setExportOpen(false)
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : '导出失败，请重试。')
     } finally {
       setExporting(false)
     }
@@ -152,7 +179,7 @@ export function EditorPage({
     <div className="editor">
       <header className="editor-header">
         <div className="editor-left">
-          <button type="button" className="btn ghost" onClick={onBack}>
+          <button type="button" className="btn ghost" onClick={() => void leaveEditor(onBack)}>
             ← 返回
           </button>
           {editingTitle ? (
@@ -196,90 +223,13 @@ export function EditorPage({
         </div>
 
         <div className="editor-actions">
-          <button
-            type="button"
-            className="btn"
-            onClick={() => exec('BACK')}
-            title="撤销"
-          >
-            撤销
-          </button>
-          <button
-            type="button"
-            className="btn"
-            onClick={() => exec('FORWARD')}
-            title="重做"
-          >
-            重做
-          </button>
-          <button
-            type="button"
-            className="btn"
-            onClick={() => exec('INSERT_CHILD_NODE')}
-            title="Tab"
-          >
-            子节点
-          </button>
-          <button
-            type="button"
-            className="btn"
-            onClick={() => exec('INSERT_NODE')}
-            title="Enter"
-          >
-            同级
-          </button>
-          <button
-            type="button"
-            className="btn"
-            onClick={() => exec('REMOVE_NODE')}
-            title="Delete"
-          >
-            删除节点
-          </button>
-
-          <label className="select-field">
-            <span>布局</span>
-            <select value={layout} onChange={(e) => handleLayout(e.target.value)}>
-              {LAYOUTS.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="select-field">
-            <span>主题</span>
-            <select value={theme} onChange={(e) => handleTheme(e.target.value)}>
-              {THEMES.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="select-field">
-            <span>导出</span>
-            <select
-              defaultValue=""
-              disabled={exporting}
-              onChange={(e) => {
-                const value = e.target.value as ExportFormat
-                e.target.value = ''
-                if (value) void handleExport(value)
-              }}
-            >
-              <option value="" disabled>
-                {exporting ? '导出中…' : '选择格式'}
-              </option>
-              {EXPORT_FORMATS.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <button type="button" className="btn" disabled={busy} onClick={() => void leaveEditor(onNew)}>新建</button>
+          <button type="button" className="btn" disabled={busy} onClick={() => void leaveEditor(onImport)}>导入</button>
+          <button type="button" className="btn" onClick={() => {
+            setFilename(title.trim() || '思维导图')
+            setExportError('')
+            setExportOpen(true)
+          }}>导出…</button>
 
           <button type="button" className="btn" onClick={onOpenSettings}>
             设置
@@ -305,6 +255,7 @@ export function EditorPage({
       )}
 
       <div className="canvas">
+        <EditorTools onChange={scheduleDraft} api={canvasApi} layout={layout} theme={theme} onLayout={handleLayout} onTheme={handleTheme} />
         <MindMapCanvas
           sceneKey={record.id}
           data={record.mindMap}
@@ -313,14 +264,41 @@ export function EditorPage({
         />
       </div>
 
-      <footer className="editor-footer">
-        <span>双击编辑节点</span>
-        <span>Tab 子节点</span>
-        <span>Enter 同级</span>
-        <span>Del 删除</span>
-        <span>Ctrl+C / Ctrl+V 复制粘贴</span>
-        <span>滚轮缩放，拖动画布</span>
-      </footer>
+      {exportOpen && (
+        <div className="modal-backdrop">
+          <form className="modal narrow" role="dialog" aria-modal="true" aria-labelledby="export-title"
+            onKeyDown={e => {
+              e.stopPropagation()
+              if (e.key === 'Escape' && !exporting) setExportOpen(false)
+            }}
+            onSubmit={e => { e.preventDefault(); if (!exporting) void handleExport() }}>
+            <header className="modal-header"><h2 id="export-title">导出导图</h2></header>
+            <label className="field"><span>文件名（自动添加扩展名）</span>
+              <input autoFocus required value={filename} disabled={exporting} onChange={e => setFilename(e.target.value)} />
+            </label>
+            <label className="field"><span>格式</span>
+              <select value={format} disabled={exporting} onChange={e => setFormat(e.target.value as ExportFormat)}>
+                {EXPORT_FORMATS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
+              </select>
+            </label>
+            {(format === 'json' || format === 'smm') && (
+              <label><input type="checkbox" checked={withConfig} disabled={exporting}
+                onChange={e => setWithConfig(e.target.checked)} /> 包含主题、结构和视图</label>
+            )}
+            {format === 'png' && (
+              <label><input type="checkbox" checked={transparent} disabled={exporting}
+                onChange={e => setTransparent(e.target.checked)} /> 透明背景</label>
+            )}
+            {exportError && <p role="alert">{exportError}</p>}
+            <footer className="modal-footer">
+              <button type="button" className="btn" disabled={exporting} onClick={() => setExportOpen(false)}>取消</button>
+              <button className="btn primary" disabled={exporting || !filename.trim()}>{exporting ? '导出中…' : '导出'}</button>
+            </footer>
+          </form>
+        </div>
+      )}
+
+      {canvasApi && <CanvasNavigation api={canvasApi} />}
     </div>
   )
 }
