@@ -560,8 +560,8 @@ code {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.6rem 0.85rem;
-  padding: 0.55rem 0.8rem;
+  gap: 3px 10px;
+  padding: 3px 10px;
   background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(10px);
@@ -569,6 +569,26 @@ code {
   z-index: 5;
 }
 
+.editor-header .btn,
+.editor-header .title-input {
+  box-sizing: border-box;
+  height: 28px;
+  padding: 2px 10px;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.editor-header .title-btn {
+  padding-block: 2px;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+@media (pointer: coarse) {
+  .editor-header .btn, .editor-header .title-btn, .editor-header .title-input {
+    min-height: 36px;
+  }
+}
 .editor-left {
   display: flex;
   align-items: center;
@@ -660,7 +680,7 @@ code {
   flex-shrink: 0;
 }
 
-@media (max-width: 800px) {
+@media (max-width: 560px) {
   .editor-header {
     align-items: flex-start;
   }
