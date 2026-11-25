@@ -25,7 +25,6 @@ function IconFace({ item }: { item: Item }) {
 }
 
 export function NodeIconPicker({ icons, onChange }: { icons: string[]; onChange: (icons: string[]) => void }) {
-  const [page,setPage] = useState('Emoji')
   const [query,setQuery] = useState('')
   const normalize = (text: string) => text.normalize('NFKC').replace(/[\uFE0E\uFE0F]/g,'').trim().toLowerCase()
   const term = normalize(query)
@@ -33,7 +32,7 @@ export function NodeIconPicker({ icons, onChange }: { icons: string[]; onChange:
     groups.map(group => ({
       ...group, items: group.items.filter(item =>
         normalize([category,group.name,item.label,item.glyph].join(' ')).includes(term)),
-    })).filter(group => group.items.length > 0)) : pages[page]
+    })).filter(group => group.items.length > 0)) : Object.values(pages).flat()
 
   function toggle(id: string) {
     if (icons.includes(id)) { onChange(icons.filter(v => v !== id)); return }
@@ -48,14 +47,13 @@ export function NodeIconPicker({ icons, onChange }: { icons: string[]; onChange:
         }} />
       {query && <button type="button" aria-label="清除搜索" onClick={() => setQuery('')}><X size={14} /></button>}
     </div>
-    {!term && <nav className="icon-categories"  aria-label="图标类别">{Object.keys(pages).map(key =>
-      <button key={key} type="button" aria-pressed={page === key} onClick={() => setPage(key)}>{key}</button>)}</nav>}
+    <div className="icon-page">
     {icons.length > 0 && <div className="chosen-icons"><small>已选 {icons.length}</small>{icons.map(id => {
       const item = lookup.get(id)
       return <button type="button" key={id} title={'移除 ' + (item?.label ?? id)} aria-label={'移除 ' + (item?.label ?? id)}
         onClick={() => toggle(id)}>{item ? <IconFace item={item} /> : id}</button>
     })}</div>}
-    <div className="icon-page" key={term ? "search" : page}>{!visibleGroups.length && <p role="status">没有找到匹配的图标，试试「会议」或「进度」。</p>}{visibleGroups.map(group => <fieldset key={group.name}>
+    {!visibleGroups.length && <p role="status">没有找到匹配的图标，试试「会议」或「进度」。</p>}{visibleGroups.map(group => <fieldset key={group.name}>
       <legend>{group.name}</legend><div className={group.items[0]?.glyph ? "emoji-tiles" : undefined}>{group.items.map(item =>
         <button type="button" key={item.id} title={item.label} aria-label={item.label}
           aria-pressed={icons.includes(item.id)} onClick={() => toggle(item.id)}><IconFace item={item} />

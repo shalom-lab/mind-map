@@ -34,7 +34,7 @@ export function NodeField({ api, field, onClose }: Props) {
     if (field === 'icon') cmd('SET_NODE_ICON', target, icons)
     onClose()
   }
-  return <dialog ref={ref} className="modal import-dialog" onCancel={onClose} onKeyDown={e => e.stopPropagation()}>
+  return <dialog ref={ref} className={field === 'icon' ? "modal import-dialog icon-dialog" : "modal import-dialog"} onCancel={onClose} onKeyDown={e => e.stopPropagation()}>
     <form onSubmit={e => { e.preventDefault(); save() }}>
       <header className="modal-header"><h2>{fields[field]}</h2></header>
       {field === 'icon' ? <NodeIconPicker icons={icons} onChange={setIcons} /> :
