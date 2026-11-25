@@ -23,7 +23,7 @@ declare module 'simple-mind-map' {
     }
     search: { search(text: string): void; replace(text: string, next: boolean): void; replaceAll(text: string): void; endSearch(): void }
     richText: { formatText: (style: Record<string, unknown>) => void; removeFormat: () => void }
-    painter: { startPainter: () => void }
+    painter: { startPainter(): void; onEndPainter(): void; isInPainter: boolean }
     associativeLine: { createLineFromActiveNode: () => void }
     resize: () => void
     destroy: () => void

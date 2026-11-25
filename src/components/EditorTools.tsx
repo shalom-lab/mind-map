@@ -63,6 +63,24 @@ export function EditorTools({ api, layout, theme, onChange, onLayout, onTheme }:
   const imageInput = useRef<HTMLInputElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const [hint, setHint] = useState('')
+  const [painting, setPainting] = useState(false)
+  useEffect(() => {
+    if (!api) return
+    const start = () => { setPainting(true); setHint('点击目标节点应用格式，按 Esc 结束') }
+    const end = () => { setPainting(false); setHint('') }
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && api.painter.isInPainter) api.painter.onEndPainter()
+    }
+    api.on('painter_start', start)
+    api.on('painter_end', end)
+    window.addEventListener('keydown', escape)
+    return () => {
+      api.off('painter_start', start)
+      api.off('painter_end', end)
+      window.removeEventListener('keydown', escape)
+    }
+  }, [api])
+
 
   useEffect(() => {
     if (!api) return
@@ -120,6 +138,7 @@ export function EditorTools({ api, layout, theme, onChange, onLayout, onTheme }:
     return () => window.clearTimeout(timeout)
   }, [hint])
   const switchMode = (next: boolean) => {
+    api?.painter.onEndPainter()
     api?.updateConfig({ useLeftKeySelectionRightKeyDrag: next })
     setBoxSelect(next)
     setHint(next ? '在画布空白处按住左键拖动，框选多个节点' : '在画布空白处按住左键拖动，平移画布')
@@ -175,7 +194,11 @@ export function EditorTools({ api, layout, theme, onChange, onLayout, onTheme }:
       {action('删除', () => command('REMOVE_NODE'))}
       </div>
       <div className="tool-group" role="group" aria-label="节点内容与样式">
-      {action('格式刷', () => { api?.painter.startPainter(); setHint('点击目标节点应用格式，点击画布结束') })}
+      <button type="button" className="btn painter-tool" disabled={!painting && !selected} aria-pressed={painting}
+        title={painting ? '退出格式刷（Esc）' : '复制选中节点的样式'}
+        onClick={() => painting ? api?.painter.onEndPainter() : api?.painter.startPainter()}>
+        <ToolIcon label="格式刷" />格式刷
+      </button>
       {action('图片', () => imageInput.current?.click())}
       <input hidden ref={imageInput} type="file" accept="image/png,image/jpeg,image/gif,image/webp" onChange={e => {
         void insertImage(e.target.files?.[0]); e.target.value = ''
