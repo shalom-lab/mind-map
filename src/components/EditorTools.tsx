@@ -1,3 +1,4 @@
+import { ColorField } from './StyleControls'
 import { FrameDialog } from './FrameDialog'
 import { BaseStyles } from './BaseStyles'
 import { LayoutPreview } from './LayoutPreview'
@@ -242,13 +243,22 @@ export function EditorTools({ api, layout, theme, onChange, onLayout, onTheme }:
         </div></section>)}
       {panel === '大纲' && outline && <ul><Outline node={outline} jump={id => command('GO_TARGET_NODE', id)} /></ul>}
       {panel === '基础样式' && api && <BaseStyles key={theme} api={api} onChange={onChange} />}
-      {panel === '节点样式' && (selected ? <>
-        {(['color', 'fillColor', 'borderColor'] as const).map((prop, i) => <label key={prop}>{['文字颜色','填充颜色','边框颜色'][i]}
-          <input type="color" value={String(node()?.getData(prop) || ['#222222','#ffffff','#777777'][i])}
-            onChange={e => command('SET_NODE_STYLE', node(), prop, e.target.value)} /></label>)}
-        {action('加粗 / 常规', () => command('SET_NODE_STYLE', node(), 'fontWeight', node()?.getData('fontWeight') === 'bold' ? 'normal' : 'bold'))}
-        {action('清除节点样式', () => command('REMOVE_CUSTOM_STYLES'))}
-      </> : <p>选择一个节点以编辑样式。</p>)}
+      {panel === '节点样式' && (selected ? <div className="style-inspector">
+        <section className="property-section"><h3>文字</h3>
+          <ColorField label="文字颜色" value={String(node()?.getStyle('color') || '#222222')}
+            onChange={value => command('SET_NODE_STYLE', node(), 'color', value)} />
+          <div className="property-row"><span>字重</span><div className="weight-control" role="group" aria-label="字重">
+            {['normal','bold'].map(weight => <button type="button" key={weight}
+              aria-pressed={(node()?.getStyle('fontWeight') === 'bold' ? 'bold' : 'normal') === weight}
+              onClick={() => command('SET_NODE_STYLE', node(), 'fontWeight', weight)}>{weight === 'bold' ? '加粗' : '常规'}</button>)}
+          </div></div>
+        </section>
+        <section className="property-section"><h3>节点外观</h3>
+          {(['fillColor', 'borderColor'] as const).map((prop,i) => <ColorField key={prop} label={['填充颜色','边框颜色'][i]!}
+            value={String(node()?.getStyle(prop) || 'transparent')} onChange={value => command('SET_NODE_STYLE', node(), prop, value)} />)}
+        </section>
+        <button type="button" className="reset-node-style" onClick={() => command('REMOVE_CUSTOM_STYLES')}><Eraser size={15} />恢复主题样式</button>
+      </div> : <p>选择一个节点以编辑样式。</p>)}
       </div>
     </aside>}
     {menu && <div className="map-menu" ref={menuRef} aria-label="画布操作菜单" style={{

@@ -7,7 +7,7 @@ declare module 'simple-mind-map' {
     select: { hasSelectRange(): boolean }
     renderer: {
       beingCopyData: unknown[] | null
-      activeNodeList: { isRoot: boolean; isGeneralization: boolean; getData: (key: string) => unknown }[]
+      activeNodeList: { isRoot: boolean; isGeneralization: boolean; getStyle(key: string): unknown; getData: (key: string) => unknown }[]
       copy: () => void
       cut: () => void
       paste: () => Promise<void>

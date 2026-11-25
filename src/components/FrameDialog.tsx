@@ -1,3 +1,4 @@
+import { ColorField, RangeField } from './StyleControls'
 import { useEffect, useRef, useState } from 'react'
 import type { MindMapInstance } from 'simple-mind-map'
 
@@ -23,14 +24,15 @@ export function FrameDialog({ api, onClose }: { api: MindMapInstance; onClose: (
       <header className="modal-header"><h2 id="frame-heading">外框样式</h2></header>
       <svg className="frame-preview" viewBox="0 0 260 72" aria-label="外框预览"><rect x="10" y="7" width="240" height="58"
         rx={radius} stroke={color} strokeWidth={width} strokeDasharray={dash} fill={fill} /></svg>
-      <label>边框颜色<input type="color" value={color} onChange={e => setColor(e.target.value)} /></label>
-      <label>线型<select value={dash} onChange={e => setDash(e.target.value)}>
+      <div className="property-section"><ColorField label="边框颜色" value={color} onChange={setColor} />
+      <label className="property-row">线型<select value={dash} onChange={e => setDash(e.target.value)}>
         <option value="none">实线</option><option value="5,5">虚线</option><option value="2,3">点线</option></select></label>
-      <label>线宽 · {width} px<input type="range" min="1" max="10" value={width} onChange={e => setWidth(Number(e.target.value))} /></label>
-      <label>圆角 · {radius} px<input type="range" min="0" max="24" value={radius} onChange={e => setRadius(Number(e.target.value))} /></label>
-      <label>填充<select value={fill} onChange={e => setFill(e.target.value)}>
+      <RangeField label="线宽" value={width} min={1} max={10} onChange={setWidth} />
+      <RangeField label="圆角" value={radius} min={0} max={24} onChange={setRadius} />
+      <label className="property-row">填充<select value={fill} onChange={e => setFill(e.target.value)}>
         <option value="none">透明</option><option value="#60a5fa22">淡蓝</option><option value="#34d39922">薄荷</option><option value="#fbbf2422">琥珀</option>
         {!['none','#60a5fa22','#34d39922','#fbbf2422'].includes(fill) && <option value={fill}>当前填充</option>}</select></label>
+      </div>
       <footer className="modal-footer"><button className="btn" type="button" onClick={onClose}>取消</button>
         <button className="btn primary">{active ? '应用样式' : '添加外框'}</button></footer>
     </form>
