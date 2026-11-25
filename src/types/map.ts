@@ -108,3 +108,13 @@ export function idFromPath(path: string | undefined | null): string | null {
   const id = base.replace(/\.json$/i, '').trim()
   return id || null
 }
+
+/** Viewport and selection are navigation state, not changes to the map. */
+export function contentKey(doc: Pick<MapDocument,'title' | 'mindMap'>): string {
+  const { root, layout, theme } = doc.mindMap
+  return JSON.stringify([doc.title, root, layout, theme], (key, value) => {
+    if (key === 'isActive' || key === 'smmVersion') return undefined
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return value
+    return Object.fromEntries(Object.keys(value).sort().map(k => [k,value[k]]))
+  })
+}

@@ -165,15 +165,17 @@ export default function App() {
           ? '已保存到本机草稿。配置 GitHub 后可同步到数据仓库。'
           : '已保存到数据仓库',
       )
+      return !localOnly
     } catch (err) {
       showToast(friendlyGithubError(err), 'error')
+      throw err
     } finally {
       setBusy(false)
     }
   }
 
-  const handleLocalDraft = async (doc: MapDocument) => {
-    await saveMapLocal(doc, { dirty: true, deleted: false }).then((record) => {
+  const handleLocalDraft = async (doc: MapDocument, dirty: boolean) => {
+    await saveMapLocal(doc, { dirty, deleted: false }).then((record) => {
       setActive((prev) => (prev && prev.id === record.id ? { ...prev, ...record } : prev))
     })
   }

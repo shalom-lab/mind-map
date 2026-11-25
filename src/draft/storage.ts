@@ -1,4 +1,5 @@
 import {
+  contentKey,
   idFromPath,
   normalizeFullData,
   titleFromNode,
@@ -72,6 +73,27 @@ export async function loadLocal(id: string): Promise<LocalMapRecord | null> {
 
 export async function upsertLocal(record: LocalMapRecord): Promise<void> {
   await withStore('readwrite', (store) => store.put(record))
+}
+
+// Recheck inside the write transaction in case another tab edited during the fetch.
+export async function confirmMatchingRemote(doc: MapDocument, path: string, sha: string) {
+  const db = await openIdb()
+  try {
+    await new Promise<void>((resolve,reject) => {
+      const tx = db.transaction(IDB_STORE, 'readwrite')
+      const store = tx.objectStore(IDB_STORE)
+      const req = store.get(doc.id)
+      req.onsuccess = () => {
+        const local = req.result
+        if (isRecord(local) && local.dirty && !local.deleted && local.path === path &&
+          local.sha === sha && contentKey(local) === contentKey(doc)) {
+          store.put({ ...local, updatedAt: doc.updatedAt, dirty: false })
+        }
+      }
+      tx.oncomplete = () => resolve()
+      tx.onabort = () => reject(tx.error ?? new Error('IndexedDB transaction aborted'))
+    })
+  } finally { db.close() }
 }
 
 export async function removeLocal(id: string): Promise<void> {

@@ -7,7 +7,7 @@ import { MindMapCanvas } from '../components/MindMapCanvas'
 import { isConfigured } from '../github/storage'
 import type { GithubSettings } from '../github/types'
 import { EXPORT_FORMATS, type ExportFormat } from '../mindmap/engine'
-import type { LocalMapRecord, MapDocument, MindMapFullData } from '../types/map'
+import { contentKey, type LocalMapRecord, type MapDocument, type MindMapFullData } from '../types/map'
 
 interface Props {
   record: LocalMapRecord
@@ -16,9 +16,9 @@ interface Props {
   onImport: () => void
   onNew: () => void
   onBack: () => void
-  onSave: (doc: MapDocument) => Promise<void>
+  onSave: (doc: MapDocument) => Promise<boolean>
   onOpenSettings: () => void
-  onLocalDraft: (doc: MapDocument) => Promise<void>
+  onLocalDraft: (doc: MapDocument, dirty: boolean) => Promise<void>
 }
 
 function readFullData(api: MindMapInstance): MindMapFullData {
@@ -60,19 +60,16 @@ export function EditorPage({
   const [exportError, setExportError] = useState('')
   const configured = isConfigured(settings)
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const metaRef = useRef({ title: record.title, dirty: record.dirty })
-
-  useEffect(() => {
-    setTitle(record.title)
-    setTitleDraft(record.title)
-    setLayout(record.mindMap.layout || 'mindMap')
-    setTheme(record.mindMap.theme?.template || 'default')
-    setDirty(record.dirty)
-  }, [record.id, record.title, record.dirty, record.mindMap.layout, record.mindMap.theme?.template])
-
-  useEffect(() => {
-    metaRef.current = { title, dirty }
-  }, [title, dirty])
+  const titleRef = useRef(record.title)
+  const initialDirty = useRef(record.dirty)
+  const localKey = useRef('')
+  const remoteKey = useRef<string | null>(null)
+  const pendingWrite = useRef(Promise.resolve())
+  const enqueue = useCallback((write: () => Promise<void>) => {
+    const result = pendingWrite.current.then(write)
+    pendingWrite.current = result.catch(() => {})
+    return result
+  }, [])
 
   useEffect(() => {
     if (editingTitle) {
@@ -93,29 +90,49 @@ export function EditorPage({
     return {
       version: 1,
       id: record.id,
-      title: metaRef.current.title.trim() || '未命名导图',
+      title: titleRef.current.trim() || '未命名导图',
       updatedAt: new Date().toISOString(),
       mindMap: readFullData(api),
     }
   }, [record.id])
 
+  const flushDraft = useCallback(() => {
+    const doc = currentDoc()
+    if (!doc) return pendingWrite.current
+    const key = contentKey(doc)
+    return enqueue(async () => {
+      if (localKey.current === key) return
+      await onLocalDraft(doc, remoteKey.current !== key)
+      localKey.current = key
+    })
+  }, [currentDoc, enqueue, onLocalDraft])
+
   const scheduleDraft = useCallback(() => {
-    setDirty(true)
+    const doc = currentDoc()
+    if (!doc) return
+    const key = contentKey(doc)
+    setDirty(remoteKey.current !== key)
     if (draftTimerRef.current) clearTimeout(draftTimerRef.current)
     draftTimerRef.current = setTimeout(() => {
-      const doc = currentDoc()
-      if (doc) onLocalDraft(doc)
+      draftTimerRef.current = null
+      void flushDraft().catch(() => setDirty(true))
     }, 500)
-  }, [currentDoc, onLocalDraft])
+  }, [currentDoc, flushDraft])
 
   const handleReady = useCallback((api: MindMapInstance) => {
     apiRef.current = api
+    const doc = currentDoc()
+    if (doc) {
+      localKey.current = contentKey(doc)
+      remoteKey.current = initialDirty.current ? null : localKey.current
+    }
     setCanvasApi(api)
-  }, [])
+  }, [currentDoc])
 
   const commitTitle = () => {
     const next = titleDraft.trim() || '未命名导图'
     if (next !== title) {
+      titleRef.current = next
       setTitle(next)
       setDirty(true)
       scheduleDraft()
@@ -146,19 +163,20 @@ export function EditorPage({
       clearTimeout(draftTimerRef.current)
       draftTimerRef.current = null
     }
-    await onSave(doc)
+    await enqueue(async () => {
+      const synced = await onSave(doc)
+      localKey.current = contentKey(doc)
+      remoteKey.current = synced ? localKey.current : null
+      const latest = currentDoc()
+      setDirty(!latest || remoteKey.current !== contentKey(latest))
+    }).catch(() => setDirty(true))
   }
 
   const leaveEditor = async (next: () => void) => {
-    if (dirty || draftTimerRef.current) {
-      const doc = currentDoc()
-      if (doc) {
-        if (draftTimerRef.current) clearTimeout(draftTimerRef.current)
-        draftTimerRef.current = null
-        try { await onLocalDraft(doc) }
-        catch { window.alert('本地草稿保存失败，请先导出备份。'); return }
-      }
-    }
+    if (draftTimerRef.current) clearTimeout(draftTimerRef.current)
+    draftTimerRef.current = null
+    try { await flushDraft() }
+    catch { window.alert('本地草稿保存失败，请先导出备份。'); return }
     next()
   }
 

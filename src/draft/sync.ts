@@ -3,6 +3,7 @@ import { isConfigured } from '../github/storage'
 import { friendlyGithubError, type GithubSettings } from '../github/types'
 import { createDocument, type LocalMapRecord, type MapDocument, type MindMapFullData } from '../types/map'
 import {
+  confirmMatchingRemote,
   loadAllLocal,
   loadLocal,
   parseMapDocument,
@@ -183,14 +184,18 @@ export async function refreshMaps(
     const existing =
       byPath.get(item.path) || byId.get(item.name.replace(/\.json$/i, ''))
     if (existing?.deleted) continue
-    if (existing && existing.dirty) continue
-    if (existing && existing.sha === item.sha) continue
+    if (existing?.dirty && existing.sha !== item.sha) continue
+    if (existing && !existing.dirty && existing.sha === item.sha) continue
     try {
       const file = await getFile(settings, item.path)
       const doc = parseMapDocument(file.text, {
         path: file.path,
         name: item.name,
       })
+      if (existing?.dirty) {
+        await confirmMatchingRemote(doc, file.path, file.sha)
+        continue
+      }
       const collision = byId.get(doc.id)
       if (collision && collision.path && collision.path !== file.path && collision.dirty) {
         // Another local dirty map already owns this id; keep local.
