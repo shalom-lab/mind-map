@@ -57,7 +57,7 @@ export type CreateMindMapInput = {
 
 export function createMindMap({ el, data }: CreateMindMapInput): MindMapInstance {
   ensurePlugins()
-  return new MindMap({
+  const api: MindMapInstance = new MindMap({
     el,
     data: data.root,
     layout: data.layout || 'mindMap',
@@ -65,7 +65,17 @@ export function createMindMap({ el, data }: CreateMindMapInput): MindMapInstance
     themeConfig: data.theme?.config || {},
     viewData: data.view || undefined,
     readonly: false,
+    errorHandler(code: string, error: unknown) {
+      if (code === 'read_clipboard_error') {
+        if (api.renderer.beingCopyData?.length) {
+          api.execCommand('PASTE_NODE', api.renderer.beingCopyData)
+        } else {
+          api.emit('clipboard_notice', '无法读取剪贴板。请允许浏览器读取，或先在导图中复制节点。')
+        }
+      } else console.error(code, error)
+    },
   })
+  return api
 }
 
 export const EXPORT_FORMATS = [

@@ -2,7 +2,11 @@ declare module 'simple-mind-map' {
   export type MindMapOptions = Record<string, unknown>
 
   export interface MindMapInstance {
+    updateConfig(options: Record<string, unknown>): void
+    emit(event: string, ...args: unknown[]): void
+    select: { hasSelectRange(): boolean }
     renderer: {
+      beingCopyData: unknown[] | null
       activeNodeList: { getData: (key: string) => unknown }[]
       copy: () => void
       cut: () => void

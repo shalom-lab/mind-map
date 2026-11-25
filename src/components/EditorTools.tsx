@@ -3,7 +3,7 @@ import { LayoutPreview } from './LayoutPreview'
 import { TextToolbar } from './TextToolbar'
 import { Undo2, Redo2, Paintbrush, ImagePlus, Link, StickyNote, Tags, Braces, Waypoints,
   Frame, ZoomOut, ZoomIn, Scan, ListPlus, GitBranch, Trash2, Sigma, Flag, Network, Palette, ListTree, Type,
-  type LucideIcon } from 'lucide-react'
+  BoxSelect, Hand, Copy, ClipboardPaste, Scissors, type LucideIcon } from 'lucide-react'
 import { NodeField, type NodeFieldKey } from './NodeField'
 import { useEffect, useRef, useState } from 'react'
 import type { MindMapInstance } from 'simple-mind-map'
@@ -21,6 +21,7 @@ type Props = {
 }
 
 const icons: Record<string, LucideIcon> = {
+  复制: Copy, 剪切: Scissors, 粘贴: ClipboardPaste,
   撤销: Undo2, 重做: Redo2, 格式刷: Paintbrush, 图片: ImagePlus, 超链接: Link, 备注: StickyNote,
   标签: Tags, 概要: Braces, 关联线: Waypoints, 外框: Frame, 缩小: ZoomOut, 放大: ZoomIn, 适应画布: Scan,
   同级节点: ListPlus, 子节点: GitBranch, 删除: Trash2, 公式: Sigma, 图标: Flag,
@@ -49,6 +50,7 @@ function Outline({ node, jump }: { node: MindMapNode; jump: (id: string) => void
 }
 
 export function EditorTools({ api, layout, theme, onChange, onLayout, onTheme }: Props) {
+  const [boxSelect, setBoxSelect] = useState(false)
   const [panel, setPanel] = useState<Panel | null>(null)
   const [, setVersion] = useState(0)
   const selected = !!api?.renderer.activeNodeList.length
@@ -67,13 +69,18 @@ export function EditorTools({ api, layout, theme, onChange, onLayout, onTheme }:
       setMenu({ x: event.clientX, y: event.clientY, node })
     }
     const onNode = (event: unknown) => open(event, true)
-    const onCanvas = (event: unknown) => open(event, false)
+    const onCanvas = (event: unknown) => {
+      if (!api.select.hasSelectRange()) open(event, false)
+    }
+    const clipboardNotice = (message: unknown) => setHint(String(message))
     active()
+    api.on('clipboard_notice', clipboardNotice)
     api.on('data_change', active)
     api.on('node_active', active)
     api.on('node_contextmenu', onNode)
     api.on('contextmenu', onCanvas)
     return () => {
+      api.off('clipboard_notice', clipboardNotice)
       api.off('data_change', active)
       api.off('node_active', active)
       api.off('node_contextmenu', onNode)
@@ -103,6 +110,20 @@ export function EditorTools({ api, layout, theme, onChange, onLayout, onTheme }:
     }
   }, [menu])
 
+  useEffect(() => {
+    if (!hint) return
+    const timeout = window.setTimeout(() => setHint(''), 4500)
+    return () => window.clearTimeout(timeout)
+  }, [hint])
+  const switchMode = (next: boolean) => {
+    api?.updateConfig({ useLeftKeySelectionRightKeyDrag: next })
+    setBoxSelect(next)
+    setHint(next ? '在画布空白处按住左键拖动，框选多个节点' : '在画布空白处按住左键拖动，平移画布')
+  }
+  const copy = () => {
+    api?.renderer.copy()
+    setHint('已复制节点。选中目标节点后粘贴。')
+  }
   const [field, setField] = useState<NodeFieldKey | null>(null)
   const node = () => api?.renderer.activeNodeList[0]
   const command = (name: string, ...args: unknown[]) => api?.execCommand(name, ...args)
@@ -128,10 +149,20 @@ export function EditorTools({ api, layout, theme, onChange, onLayout, onTheme }:
       onClick={() => { setMenu(null); setHint(''); fn() }}><ToolIcon label={label} />{label}</button>
 
   return <>
-    <div className="map-tools" aria-label="节点工具">
+    <div className="map-tools" role="toolbar" aria-label="导图编辑工具">
+      <div className="tool-group mode-group" role="group" aria-label="鼠标模式">
+        <button className="btn" aria-pressed={!boxSelect} disabled={!api} onClick={() => switchMode(false)} title="左键拖动画布"><Hand size={18} />拖动</button>
+        <button className="btn" aria-pressed={boxSelect} disabled={!api} onClick={() => switchMode(true)} title="左键拖动框选节点"><BoxSelect size={18} />框选</button>
+      </div>
+      <div className="tool-group" role="group" aria-label="编辑">
       {action('撤销', () => command('BACK'), false)}{action('重做', () => command('FORWARD'), false)}
+      {action('复制', copy)}{action('剪切', () => api?.renderer.cut())}{action('粘贴', () => void api?.renderer.paste())}
+      </div>
+      <div className="tool-group" role="group" aria-label="节点">
       {action('同级节点', () => command('INSERT_NODE'))}{action('子节点', () => command('INSERT_CHILD_NODE'))}
       {action('删除', () => command('REMOVE_NODE'))}
+      </div>
+      <div className="tool-group" role="group" aria-label="节点内容与样式">
       {action('格式刷', () => { api?.painter.startPainter(); setHint('点击目标节点应用格式，点击画布结束') })}
       {action('图片', () => imageInput.current?.click())}
       <input hidden ref={imageInput} type="file" accept="image/png,image/jpeg,image/gif,image/webp" onChange={e => {
@@ -142,8 +173,9 @@ export function EditorTools({ api, layout, theme, onChange, onLayout, onTheme }:
       {action('概要', () => command('ADD_GENERALIZATION'))}
       {action('关联线', () => { api?.associativeLine.createLineFromActiveNode(); setHint('点击目标节点连接') })}
       {action('外框', () => command('ADD_OUTER_FRAME'))}
-      <span role="status">{hint}</span>
+      </div>
     </div>
+    <div className="canvas-feedback" role="status">{hint || ((api?.renderer.activeNodeList.length ?? 0) > 1 ? `已选中 ${api?.renderer.activeNodeList.length} 个节点` : '')}</div>
     {api && <TextToolbar api={api} />}
     {field && api && <NodeField field={field} api={api} onClose={() => setField(null)} />}
     <nav className="map-rail" aria-label="编辑面板">{panels.map(p =>
@@ -168,7 +200,7 @@ export function EditorTools({ api, layout, theme, onChange, onLayout, onTheme }:
     }}>
       {menu.node && <>
         {nodeCommands.map(([label, cmd]) => action(label, () => command(cmd)))}
-        {action('复制节点', () => api?.renderer.copy())}{action('剪切节点', () => api?.renderer.cut())}
+        {action('复制节点', copy)}{action('剪切节点', () => api?.renderer.cut())}
         {action('粘贴节点', () => void api?.renderer.paste())}
       </>}
       {action('展开全部', () => command('EXPAND_ALL'), false)}
