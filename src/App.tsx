@@ -234,12 +234,11 @@ export default function App() {
         await reloadLocal()
       }} />}
 
-      <SettingsModal
-        open={settingsOpen}
+      {settingsOpen && <SettingsModal
         initial={settings}
         onClose={() => setSettingsOpen(false)}
         onSaved={handleSavedSettings}
-      />
+      />}
 
       {toast && (
         <div className={`toast toast-${toast.kind}`} role="status">

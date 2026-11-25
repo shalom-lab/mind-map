@@ -847,3 +847,14 @@ code {
 .canvas:has(.mode-group button:first-child[aria-pressed=true]) .mind-canvas { cursor: grab; }
 .canvas .mind-canvas.pan-ready, .canvas .mind-canvas.pan-ready * { cursor: grab !important; }
 .canvas .mind-canvas.pan-active, .canvas .mind-canvas.pan-active * { cursor: grabbing !important; }
+
+.ui-emoji, .map-tools .ui-emoji { display: inline-grid; place-items: center; flex: none; font: normal 17px/1.15 "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif; }
+.map-menu .ui-emoji, .settings-card .ui-emoji { font-size: 14px; }
+.header-actions .ui-emoji, .editor-actions .ui-emoji { font-size: 13px; }
+.settings-card { width: min(400px,100%); padding: 18px; }
+.settings-card .modal-header { margin-bottom: 16px; }
+.settings-card .field { margin-bottom: 12px; }
+.settings-help { color: var(--text-muted); font-size: 12px; }
+.settings-help summary { width: fit-content; cursor: pointer; }
+.settings-help p { margin: 6px 0; }
+.settings-card .modal-footer { border-top: 1px solid var(--border); padding-top: 12px; }

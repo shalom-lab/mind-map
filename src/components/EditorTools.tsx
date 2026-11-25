@@ -4,10 +4,7 @@ import { FrameDialog } from './FrameDialog'
 import { BaseStyles } from './BaseStyles'
 import { LayoutPreview } from './LayoutPreview'
 import { TextToolbar } from './TextToolbar'
-import { Undo2, Redo2, Paintbrush, ImagePlus, Link, StickyNote, Tags, Braces, Waypoints,
-  Frame, ZoomOut, ZoomIn, Scan, ListPlus, GitBranch, Trash2, Sigma, Flag, Network, Palette, ListTree, Type,
-  ArrowUp, ArrowDown, CornerLeftUp, Eraser, UnfoldVertical, FoldVertical, Check, X, ListMinus,
-  BoxSelect, Hand, Copy, ClipboardPaste, Scissors, type LucideIcon } from 'lucide-react'
+import { Eraser, Check, X } from 'lucide-react'
 import { NodeField, type NodeFieldKey } from './NodeField'
 import { useEffect, useRef, useState } from 'react'
 import type { MindMapInstance } from 'simple-mind-map'
@@ -24,19 +21,17 @@ type Props = {
   onTheme: (value: string) => void
 }
 
-const icons: Record<string, LucideIcon> = {
-  父节点: CornerLeftUp, 上移节点: ArrowUp, 下移节点: ArrowDown, 添加概要: Braces,
-  删除节点: Trash2, 仅删除当前节点: ListMinus, 清除节点样式: Eraser, 复制节点: Copy,
-  剪切节点: Scissors, 粘贴节点: ClipboardPaste, 展开全部: UnfoldVertical, 收起全部: FoldVertical,
-  复制: Copy, 剪切: Scissors, 粘贴: ClipboardPaste,
-  撤销: Undo2, 重做: Redo2, 格式刷: Paintbrush, 图片: ImagePlus, 超链接: Link, 备注: StickyNote,
-  标签: Tags, 概要: Braces, 关联线: Waypoints, 外框: Frame, 缩小: ZoomOut, 放大: ZoomIn, 适应画布: Scan,
-  同级节点: ListPlus, 子节点: GitBranch, 删除: Trash2, 公式: Sigma, 图标: Flag,
-  结构: Network, 主题: Palette, 基础样式: Paintbrush, 节点样式: Type, 大纲: ListTree,
+const icons: Record<string, string> = {
+  拖动: '✋', 框选: '🔲', 撤销: '↩️', 重做: '↪️', 复制: '📄', 剪切: '✂️', 粘贴: '📋',
+  同级节点: '🌿', 子节点: '🌱', 父节点: '🌳', 删除: '🗑️', 格式刷: '🖌️', 图片: '🖼️',
+  超链接: '🔗', 备注: '📝', 标签: '🏷️', 图标: '🙂', 公式: '🧮', 概要: '📑',
+  关联线: '🧵', 外框: '🔳', 节点样式: '✏️', 基础样式: '🎛️', 主题: '🎨', 结构: '🗂️', 大纲: '📜',
+  上移节点: '⬆️', 下移节点: '⬇️', 添加概要: '📑', 删除节点: '🗑️', 仅删除当前节点: '➖',
+  清除节点样式: '🧽', 复制节点: '📄', 剪切节点: '✂️', 粘贴节点: '📋',
+  展开全部: '📂', 收起全部: '📁', 适应画布: '🔍',
 }
 function ToolIcon({ label }: { label: string }) {
-  const Icon = icons[label]
-  return Icon ? <Icon size={18} strokeWidth={1.65} aria-hidden /> : null
+  return <span className="ui-emoji" aria-hidden="true">{icons[label]}</span>
 }
 
 const panels = ['节点样式', '基础样式', '主题', '结构', '大纲'] as const
@@ -182,8 +177,8 @@ export function EditorTools({ api, layout, theme, onChange, onLayout, onTheme }:
   return <>
     <div className="map-tools" role="toolbar" aria-label="导图编辑工具">
       <div className="tool-group mode-group" role="group" aria-label="鼠标模式">
-        <button className="btn" aria-pressed={!boxSelect} disabled={!api} onClick={() => switchMode(false)} title="拖动节点或空白处平移；Alt + 拖动移动节点"><Hand size={18} />拖动</button>
-        <button className="btn" aria-pressed={boxSelect} disabled={!api} onClick={() => switchMode(true)} title="左键拖动框选；按住空格拖动可临时平移"><BoxSelect size={18} />框选</button>
+        <button className="btn" aria-pressed={!boxSelect} disabled={!api} onClick={() => switchMode(false)} title="拖动节点或空白处平移；Alt + 拖动移动节点"><ToolIcon label="拖动" />拖动</button>
+        <button className="btn" aria-pressed={boxSelect} disabled={!api} onClick={() => switchMode(true)} title="左键拖动框选；按住空格拖动可临时平移"><ToolIcon label="框选" />框选</button>
       </div>
       <div className="tool-group" role="group" aria-label="编辑">
       {action('撤销', () => command('BACK'), false)}{action('重做', () => command('FORWARD'), false)}

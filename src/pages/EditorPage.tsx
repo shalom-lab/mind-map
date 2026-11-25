@@ -232,7 +232,7 @@ export function EditorPage({
           }}>导出…</button>
 
           <button type="button" className="btn" onClick={onOpenSettings}>
-            设置
+            <span className="ui-emoji" aria-hidden="true">⚙️</span>设置
           </button>
           <button
             type="button"

@@ -1,57 +1,33 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { testConnection } from '../github/client'
 import {
   clearSettings,
   isValidSettings,
-  KEY_REPO,
-  KEY_TOKEN,
   saveSettings,
 } from '../github/storage'
 import {
   DEFAULT_REPO_HINT,
   DEFAULT_SETTINGS,
   friendlyGithubError,
-  maskToken,
   parseRepo,
   type GithubSettings,
 } from '../github/types'
 import { ConfirmDialog } from './ConfirmDialog'
 
 interface Props {
-  open: boolean
   initial: GithubSettings
   onClose: () => void
   onSaved: (settings: GithubSettings) => void
 }
 
-export function SettingsModal({ open, initial, onClose, onSaved }: Props) {
+export function SettingsModal({ initial, onClose, onSaved }: Props) {
   const [tokenInput, setTokenInput] = useState('')
-  const [repoInput, setRepoInput] = useState('')
+  const [repoInput, setRepoInput] = useState(initial.repo)
   const [saved, setSaved] = useState<GithubSettings>(initial)
   const [msg, setMsg] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false)
-
-  useEffect(() => {
-    if (open) {
-      setSaved(initial)
-      setRepoInput(initial.repo)
-      // Never prefill full secret into the password field
-      setTokenInput('')
-      setMsg(null)
-      setErr(null)
-      setBusy(false)
-      setClearConfirmOpen(false)
-    }
-  }, [open, initial])
-
-  if (!open) return null
-
-  const tokenStatus = saved.token.trim()
-    ? `已保存 ${maskToken(saved.token)}`
-    : '未设置'
-  const repoStatus = saved.repo.trim() ? `已保存 ${saved.repo}` : '未设置'
 
   const handleSave = async () => {
     const next: GithubSettings = {
@@ -59,17 +35,17 @@ export function SettingsModal({ open, initial, onClose, onSaved }: Props) {
       repo: repoInput.trim(),
     }
     if (!next.token.trim()) {
-      setErr('请填写 GitHub PAT（不会把空值写入 localStorage）')
+      setErr('请填写 GitHub 访问令牌。')
       setMsg(null)
       return
     }
     if (!parseRepo(next.repo)) {
-      setErr('仓库请填写有效的 owner/repo 格式（不会把无效值写入 localStorage）')
+      setErr('仓库格式应为「用户名/仓库名」。')
       setMsg(null)
       return
     }
     if (!isValidSettings(next)) {
-      setErr('设置未通过校验，已保留原有 localStorage，未覆盖写入')
+      setErr('请检查仓库名和访问令牌。')
       setMsg(null)
       return
     }
@@ -108,38 +84,24 @@ export function SettingsModal({ open, initial, onClose, onSaved }: Props) {
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-backdrop" onClick={() => { if (!busy) onClose() }}>
+      <form className="modal settings-card" role="dialog" aria-modal="true" aria-labelledby="settings-title" onClick={e => e.stopPropagation()} onKeyDown={e => { e.stopPropagation(); if (e.key === 'Escape' && !busy) onClose() }} onSubmit={e => { e.preventDefault(); if (!busy) void handleSave() }}>
         <header className="modal-header">
-          <h2>GitHub 设置</h2>
+          <h2 id="settings-title"><span aria-hidden="true">⚙️</span> GitHub 同步</h2>
           <button
             type="button"
             className="icon-btn"
             onClick={onClose}
-            aria-label="关闭"
+            aria-label="关闭" disabled={busy}
           >
             ×
           </button>
         </header>
 
-        <p className="hint">
-          PAT 与数据仓库仅保存在本机 <code>localStorage</code>（
-          <code>{KEY_TOKEN}</code> / <code>{KEY_REPO}</code>
-          ），不会写入任何代码或提交。需要权限：
-          <strong>Contents: Read and write</strong>（经典 token 勾选 <code>repo</code>
-          ）。可 Settings 填写，也可事先写入 localStorage；启动会自动读。
-        </p>
-        <p className="hint muted">
-          数据仓建议使用 <code>{DEFAULT_REPO_HINT}</code>
-          ，导图文件写在 <code>maps/*.json</code>。主仓只部署网页。
-        </p>
-
         <label className="field">
-          <span>
-            数据仓库 <span className="status-pill">{repoStatus}</span>
-          </span>
-          <input
-            placeholder="owner/repo，例如 shalom-lab/mind-map-data"
+          <span><i className="ui-emoji" aria-hidden="true">📁</i>数据仓库</span>
+          <input autoFocus disabled={busy}
+            placeholder={DEFAULT_REPO_HINT}
             spellCheck={false}
             value={repoInput}
             onChange={(e) => setRepoInput(e.target.value.trim())}
@@ -147,49 +109,39 @@ export function SettingsModal({ open, initial, onClose, onSaved }: Props) {
         </label>
 
         <label className="field">
-          <span>
-            GitHub PAT <span className="status-pill">{tokenStatus}</span>
-          </span>
-          <input
-            type="password"
-            autoComplete="off"
-            spellCheck={false}
-            placeholder={
-              saved.token
-                ? `已保存 ${maskToken(saved.token)} — 留空保持不变，或粘贴新 PAT`
-                : 'ghp_… 或 github_pat_…'
-            }
+          <span><i className="ui-emoji" aria-hidden="true">🔑</i>访问令牌</span>
+          <input type="password" disabled={busy} autoComplete="off" spellCheck={false}
+            placeholder={saved.token ? '已保存 · 输入新令牌可替换' : '输入 GitHub 个人访问令牌'}
             value={tokenInput}
             onChange={(e) => setTokenInput(e.target.value)}
           />
         </label>
 
-        {msg && <div className="banner success">{msg}</div>}
-        {err && <div className="banner error">{err}</div>}
+        <details className="settings-help"><summary>令牌权限与存储</summary>
+          <p>为数据仓库授予 Contents 读写权限。令牌仅保存在此浏览器，导图保存在仓库的 maps/ 目录。</p>
+        </details>
+        {msg && <div className="banner success" role="status">{msg}</div>}
+        {err && <div className="banner error" role="alert">{err}</div>}
 
         <footer className="modal-footer">
           <button
             type="button"
-            className="btn danger"
+            className="btn ghost danger-text"
             onClick={() => setClearConfirmOpen(true)}
-            disabled={busy}
+            disabled={busy || (!saved.repo && !saved.token)}
           >
-            清除
+            清除配置
           </button>
           <div className="spacer" />
-          <button type="button" className="btn" onClick={onClose} disabled={busy}>
-            关闭
-          </button>
           <button
-            type="button"
+            type="submit"
             className="btn primary"
-            onClick={() => void handleSave()}
             disabled={busy}
           >
             {busy ? '保存中…' : '保存'}
           </button>
         </footer>
-      </div>
+      </form>
 
       <ConfirmDialog
         open={clearConfirmOpen}

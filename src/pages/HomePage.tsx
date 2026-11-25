@@ -80,7 +80,7 @@ export function HomePage({
             {busy ? '同步中…' : '刷新'}
           </button>
           <button type="button" className="btn" onClick={onOpenSettings}>
-            设置
+            <span className="ui-emoji" aria-hidden="true">⚙️</span>设置
           </button>
           <button type="button" className="btn" onClick={onImport} disabled={busy}>导入</button>
           <button type="button" className="btn primary" onClick={onNew} disabled={busy}>
