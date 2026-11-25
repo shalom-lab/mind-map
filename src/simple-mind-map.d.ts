@@ -119,7 +119,7 @@ declare module 'simple-mind-map-plugin-themes/themeList' {
   export type ThemeListItem = {
     name: string
     value: string
-    theme?: unknown
+    theme?: { backgroundColor?: string; lineColor?: string; root?: { fillColor?: string }; second?: { fillColor?: string } }
     dark?: boolean
   }
   const themeList: ThemeListItem[]

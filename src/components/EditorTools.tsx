@@ -3,6 +3,7 @@ import { LayoutPreview } from './LayoutPreview'
 import { TextToolbar } from './TextToolbar'
 import { Undo2, Redo2, Paintbrush, ImagePlus, Link, StickyNote, Tags, Braces, Waypoints,
   Frame, ZoomOut, ZoomIn, Scan, ListPlus, GitBranch, Trash2, Sigma, Flag, Network, Palette, ListTree, Type,
+  ArrowUp, ArrowDown, CornerLeftUp, Eraser, UnfoldVertical, FoldVertical, Check, X, ListMinus,
   BoxSelect, Hand, Copy, ClipboardPaste, Scissors, type LucideIcon } from 'lucide-react'
 import { NodeField, type NodeFieldKey } from './NodeField'
 import { useEffect, useRef, useState } from 'react'
@@ -21,6 +22,9 @@ type Props = {
 }
 
 const icons: Record<string, LucideIcon> = {
+  父节点: CornerLeftUp, 上移节点: ArrowUp, 下移节点: ArrowDown, 添加概要: Braces,
+  删除节点: Trash2, 仅删除当前节点: ListMinus, 清除节点样式: Eraser, 复制节点: Copy,
+  剪切节点: Scissors, 粘贴节点: ClipboardPaste, 展开全部: UnfoldVertical, 收起全部: FoldVertical,
   复制: Copy, 剪切: Scissors, 粘贴: ClipboardPaste,
   撤销: Undo2, 重做: Redo2, 格式刷: Paintbrush, 图片: ImagePlus, 超链接: Link, 备注: StickyNote,
   标签: Tags, 概要: Braces, 关联线: Waypoints, 外框: Frame, 缩小: ZoomOut, 放大: ZoomIn, 适应画布: Scan,
@@ -124,6 +128,14 @@ export function EditorTools({ api, layout, theme, onChange, onLayout, onTheme }:
     api?.renderer.copy()
     setHint('已复制节点。选中目标节点后粘贴。')
   }
+  useEffect(() => {
+    if (!panel) return
+    const close = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !document.querySelector('dialog[open]')) setPanel(null)
+    }
+    window.addEventListener('keydown', close)
+    return () => window.removeEventListener('keydown', close)
+  }, [panel])
   const [field, setField] = useState<NodeFieldKey | null>(null)
   const node = () => api?.renderer.activeNodeList[0]
   const command = (name: string, ...args: unknown[]) => api?.execCommand(name, ...args)
@@ -179,11 +191,23 @@ export function EditorTools({ api, layout, theme, onChange, onLayout, onTheme }:
     {api && <TextToolbar api={api} />}
     {field && api && <NodeField field={field} api={api} onClose={() => setField(null)} />}
     <nav className="map-rail" aria-label="编辑面板">{panels.map(p =>
-      <button key={p} aria-pressed={panel === p} onClick={() => setPanel(panel === p ? null : p)}><ToolIcon label={p} />{p}</button>)}</nav>
-    {panel && <aside className="map-panel"><header><strong>{panel}</strong>
-      <button aria-label="关闭面板" onClick={() => setPanel(null)}>×</button></header>
+      <button key={p} aria-expanded={panel === p} aria-controls={panel === p ? "editor-drawer" : undefined} aria-pressed={panel === p} onClick={() => setPanel(panel === p ? null : p)}><ToolIcon label={p} />{p}</button>)}</nav>
+    {panel && <aside className="map-panel" id="editor-drawer" aria-label={panel}><header><strong>{panel}</strong>
+      <button aria-label="关闭面板" onClick={() => setPanel(null)}><X size={16} /></button></header>
+      <div className="drawer-body" key={panel}>
       {panel === '结构' && <div className="layout-options">{LAYOUTS.map(l => <button key={l.value} aria-pressed={layout === l.value} onClick={() => onLayout(l.value)}><LayoutPreview id={l.value} />{l.label}</button>)}</div>}
-      {panel === '主题' && THEMES.map(t => <button key={t.value} aria-pressed={theme === t.value} onClick={() => onTheme(t.value)}>{t.label}</button>)}
+      {panel === '主题' && [false, true].map(dark => <section className="theme-section" key={String(dark)}>
+        <h3>{dark ? '深色' : '浅色'}</h3><div className="theme-grid">
+          {THEMES.filter(t => !!t.dark === dark).map(t => <button className="theme-card" key={t.value}
+            aria-pressed={theme === t.value} onClick={() => onTheme(t.value)}>
+            <svg viewBox="0 0 100 44" aria-hidden="true" style={{ background: t.colors.background }}>
+              <path d="M32 22 H49 V12 H70 M49 22 V32 H70" fill="none" stroke={t.colors.line} strokeWidth="2" />
+              <rect x="13" y="16" width="25" height="12" rx="4" fill={t.colors.root} stroke={t.colors.line} />
+              {[7,27].map(y => <rect key={y} x="65" y={y} width="22" height="10" rx="3" fill={t.colors.branch} stroke={t.colors.line} />)}
+            </svg>
+            <span>{t.label}{theme === t.value && <Check size={13} aria-hidden />}</span>
+          </button>)}
+        </div></section>)}
       {panel === '大纲' && outline && <ul><Outline node={outline} jump={id => command('GO_TARGET_NODE', id)} /></ul>}
       {panel === '基础样式' && api && <BaseStyles key={theme} api={api} onChange={onChange} />}
       {panel === '节点样式' && (selected ? <>
@@ -193,15 +217,22 @@ export function EditorTools({ api, layout, theme, onChange, onLayout, onTheme }:
         {action('加粗 / 常规', () => command('SET_NODE_STYLE', node(), 'fontWeight', node()?.getData('fontWeight') === 'bold' ? 'normal' : 'bold'))}
         {action('清除节点样式', () => command('REMOVE_CUSTOM_STYLES'))}
       </> : <p>选择一个节点以编辑样式。</p>)}
+      </div>
     </aside>}
     {menu && <div className="map-menu" ref={menuRef} aria-label="画布操作菜单" style={{
-      left: Math.max(0, Math.min(menu.x, window.innerWidth - 198)),
-      top: Math.max(0, Math.min(menu.y, window.innerHeight - Math.min(470, window.innerHeight))),
+      left: Math.max(0, Math.min(menu.x, window.innerWidth - 184)),
+      top: Math.max(0, Math.min(menu.y, window.innerHeight - Math.min(menu.node ? 456 : 92, window.innerHeight) - 5)),
     }}>
       {menu.node && <>
-        {nodeCommands.map(([label, cmd]) => action(label, () => command(cmd)))}
+        {nodeCommands.slice(0, 3).map(([label, cmd]) => action(label, () => command(cmd)))}
+        <hr />
+        {nodeCommands.slice(3, 6).map(([label, cmd]) => action(label, () => command(cmd)))}
+        <hr />
         {action('复制节点', copy)}{action('剪切节点', () => api?.renderer.cut())}
         {action('粘贴节点', () => void api?.renderer.paste())}
+        <hr />
+        {nodeCommands.slice(6).map(([label, cmd]) => action(label, () => command(cmd)))}
+        <hr />
       </>}
       {action('展开全部', () => command('EXPAND_ALL'), false)}
       {action('收起全部', () => command('UNEXPAND_ALL'), false)}
