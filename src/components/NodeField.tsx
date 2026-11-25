@@ -1,3 +1,4 @@
+import { recordIconUsage } from '../mindmap/iconUsage'
 import { NodeIconPicker } from './NodeIconPicker'
 import { useEffect, useRef, useState } from 'react'
 import type { MindMapInstance } from 'simple-mind-map'
@@ -31,7 +32,12 @@ export function NodeField({ api, field, onClose }: Props) {
     if (field === 'note') cmd('SET_NODE_NOTE', target, text)
     if (field === 'hyperlink') cmd('SET_NODE_HYPERLINK', target, text)
     if (field === 'formula') cmd('INSERT_FORMULA', text, [target])
-    if (field === 'icon') cmd('SET_NODE_ICON', target, icons)
+    if (field === 'icon' && target) {
+      const before = target.getData('icon')
+      const added = icons.filter(id => !Array.isArray(before) || !before.includes(id))
+      cmd('SET_NODE_ICON', target, icons)
+      recordIconUsage(added)
+    }
     onClose()
   }
   return <dialog ref={ref} className={field === 'icon' ? "modal import-dialog icon-dialog" : "modal import-dialog"} onCancel={onClose} onKeyDown={e => e.stopPropagation()}>

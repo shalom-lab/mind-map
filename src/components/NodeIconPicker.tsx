@@ -1,3 +1,4 @@
+import { readIconUsage } from '../mindmap/iconUsage'
 import { Search, X, Check } from 'lucide-react'
 import { useState } from 'react'
 import { nodeIconList } from 'simple-mind-map/src/svg/icons.js'
@@ -25,6 +26,14 @@ function IconFace({ item }: { item: Item }) {
 }
 
 export function NodeIconPicker({ icons, onChange }: { icons: string[]; onChange: (icons: string[]) => void }) {
+  const [shortcuts] = useState<Group[]>(() => {
+    const usage = readIconUsage().filter(entry => lookup.has(entry.id))
+    const frequent = usage.filter(entry => entry.count >= 2).sort((a,b) => b.count - a.count)
+    return [
+      { name: '最近使用', items: usage.slice(0,8).map(entry => lookup.get(entry.id)!) },
+      { name: '常用', items: frequent.slice(0,8).map(entry => lookup.get(entry.id)!) },
+    ].filter(group => group.items.length > 0)
+  })
   const [query,setQuery] = useState('')
   const normalize = (text: string) => text.normalize('NFKC').replace(/[\uFE0E\uFE0F]/g,'').trim().toLowerCase()
   const term = normalize(query)
@@ -32,7 +41,7 @@ export function NodeIconPicker({ icons, onChange }: { icons: string[]; onChange:
     groups.map(group => ({
       ...group, items: group.items.filter(item =>
         normalize([category,group.name,item.label,item.glyph].join(' ')).includes(term)),
-    })).filter(group => group.items.length > 0)) : Object.values(pages).flat()
+    })).filter(group => group.items.length > 0)) : [...shortcuts,...Object.values(pages).flat()]
 
   function toggle(id: string) {
     if (icons.includes(id)) { onChange(icons.filter(v => v !== id)); return }
