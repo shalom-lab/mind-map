@@ -1,3 +1,4 @@
+import { withoutCustomBackground } from '../mindmap/themes'
 import { ColorField, RangeField } from './StyleControls'
 import { useState } from 'react'
 import type { MindMapInstance } from 'simple-mind-map'
@@ -14,6 +15,12 @@ export function BaseStyles({ api, onChange }: { api: MindMapInstance; onChange: 
   return <div className="style-inspector">
     <section className="property-section"><h3>画布与连线</h3>
     <ColorField label="画布背景" value={String(values.backgroundColor ?? '#ffffff')} onChange={v => change('backgroundColor',v)} />
+    {Object.keys(withoutCustomBackground(api.getCustomThemeConfig())).length !== Object.keys(api.getCustomThemeConfig()).length &&
+      <button className="reset-node-style" type="button" onClick={() => {
+        api.setThemeConfig(withoutCustomBackground(api.getCustomThemeConfig()))
+        setValues({ ...api.getThemeConfig() })
+        onChange()
+      }}>恢复主题背景</button>}
     <ColorField label="连线颜色" value={String(values.lineColor ?? '#549688')} onChange={v => change('lineColor',v)} />
     <label className="property-row">连线风格<select value={String(values.lineStyle)} onChange={e => change('lineStyle',e.target.value)}>
       <option value="straight">折线</option><option value="curve">曲线</option><option value="direct">直连</option>

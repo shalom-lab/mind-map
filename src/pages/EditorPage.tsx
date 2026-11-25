@@ -1,3 +1,4 @@
+import { withoutCustomBackground } from '../mindmap/themes'
 import { CanvasNavigation } from '../components/CanvasNavigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { MindMapInstance } from 'simple-mind-map'
@@ -130,7 +131,11 @@ export function EditorPage({
 
   const handleTheme = (value: string) => {
     setTheme(value)
-    apiRef.current?.setTheme(value)
+    const api = apiRef.current
+    if (api && api.getTheme() !== value) {
+      api.setThemeConfig(withoutCustomBackground(api.getCustomThemeConfig()), true)
+      api.setTheme(value)
+    }
     scheduleDraft()
   }
 

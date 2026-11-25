@@ -221,7 +221,7 @@ export function EditorTools({ api, layout, theme, onChange, onLayout, onTheme }:
         <h3>{dark ? '深色' : '浅色'}</h3><div className="theme-grid">
           {THEMES.filter(t => !!t.dark === dark).map(t => <button className="theme-card" key={t.value}
             aria-pressed={theme === t.value} onClick={() => onTheme(t.value)}>
-            <svg viewBox="0 0 100 44" aria-hidden="true" style={{ background: t.colors.background }}>
+            <svg viewBox="0 0 100 44" aria-hidden="true" style={{ backgroundColor: t.colors.background, ...t.previewBackground }}>
               <path d="M32 22 H49 V12 H70 M49 22 V32 H70" fill="none" stroke={t.colors.line} strokeWidth="2" />
               <rect x="13" y="16" width="25" height="12" rx="4" fill={t.colors.root} stroke={t.colors.line} />
               {[7,27].map(y => <rect key={y} x="65" y={y} width="22" height="10" rx="3" fill={t.colors.branch} stroke={t.colors.line} />)}
