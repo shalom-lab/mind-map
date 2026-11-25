@@ -1,0 +1,38 @@
+{
+  "name": "mind-map",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "license": "MIT",
+  "description": "基于 Simple Mind Map 的 BYOK 思维导图 Web 应用。数据存独立 GitHub 仓库，部署于 GitHub Pages。",
+  "author": "shalom-lab",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shalom-lab/mind-map"
+  },
+  "homepage": "https://shalom-lab.github.io/mind-map/",
+  "bugs": {
+    "url": "https://github.com/shalom-lab/mind-map/issues"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "simple-mind-map": "^0.14.0-fix.3",
+    "simple-mind-map-plugin-themes": "^1.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "oxlint": "^1.81.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  }
+}
