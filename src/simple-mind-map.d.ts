@@ -7,7 +7,7 @@ declare module 'simple-mind-map' {
     select: { hasSelectRange(): boolean }
     renderer: {
       beingCopyData: unknown[] | null
-      activeNodeList: { getData: (key: string) => unknown }[]
+      activeNodeList: { isRoot: boolean; isGeneralization: boolean; getData: (key: string) => unknown }[]
       copy: () => void
       cut: () => void
       paste: () => Promise<void>
@@ -24,6 +24,10 @@ declare module 'simple-mind-map' {
     search: { search(text: string): void; replace(text: string, next: boolean): void; replaceAll(text: string): void; endSearch(): void }
     richText: { formatText: (style: Record<string, unknown>) => void; removeFormat: () => void }
     painter: { startPainter(): void; onEndPainter(): void; isInPainter: boolean }
+    outerFrame: {
+      getActiveOuterFrame(): { node: { children: { getData(key: string): Record<string, unknown> }[] }; range: number[] } | null
+      updateActiveOuterFrame(style: Record<string, unknown>): void
+    }
     associativeLine: { createLineFromActiveNode: () => void }
     resize: () => void
     destroy: () => void
@@ -139,4 +143,8 @@ declare module 'simple-mind-map/src/plugins/Search.js' {
   export default class Search {
     getReplacedText(node: unknown, searchText: string, replaceText: string): string
   }
+}
+
+declare module 'simple-mind-map/src/svg/icons.js' {
+  export const nodeIconList: { name: string; type: string; list: { name: string; icon: string }[] }[]
 }

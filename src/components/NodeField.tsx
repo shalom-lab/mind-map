@@ -1,7 +1,8 @@
+import { nodeIconList } from 'simple-mind-map/src/svg/icons.js'
 import { useEffect, useRef, useState } from 'react'
 import type { MindMapInstance } from 'simple-mind-map'
 
-const fields = { note: '备注', tag: '标签', hyperlink: '超链接', formula: '公式', icon: '优先级图标' }
+const fields = { note: '备注', tag: '标签', hyperlink: '超链接', formula: '公式', icon: '节点图标' }
 export type NodeFieldKey = keyof typeof fields
 type Props = { api: MindMapInstance; field: NodeFieldKey; onClose: () => void }
 
@@ -10,8 +11,11 @@ export function NodeField({ api, field, onClose }: Props) {
   const [target] = useState(() => api.renderer.activeNodeList[0])
   const [value, setValue] = useState<string>(() => {
     const raw = target?.getData(field)
-    if (field === 'icon') return Array.isArray(raw) ? raw.find(v => String(v).startsWith('priority_')) ?? '' : ''
     return Array.isArray(raw) ? raw.join('，') : String(raw ?? '')
+  })
+  const [icons,setIcons] = useState<string[]>(() => {
+    const existing = target?.getData('icon')
+    return Array.isArray(existing) ? [...existing] : []
   })
   const [error, setError] = useState('')
   useEffect(() => { ref.current?.showModal() }, [])
@@ -27,21 +31,25 @@ export function NodeField({ api, field, onClose }: Props) {
     if (field === 'note') cmd('SET_NODE_NOTE', target, text)
     if (field === 'hyperlink') cmd('SET_NODE_HYPERLINK', target, text)
     if (field === 'formula') cmd('INSERT_FORMULA', text, [target])
-    if (field === 'icon') {
-      const icons = target?.getData('icon')
-      const rest = Array.isArray(icons) ? icons.filter(v => !String(v).startsWith('priority_')) : []
-      cmd('SET_NODE_ICON', target, text ? [...rest, text] : rest)
-    }
+    if (field === 'icon') cmd('SET_NODE_ICON', target, icons)
     onClose()
   }
   return <dialog ref={ref} className="modal import-dialog" onCancel={onClose} onKeyDown={e => e.stopPropagation()}>
     <form onSubmit={e => { e.preventDefault(); save() }}>
       <header className="modal-header"><h2>{fields[field]}</h2></header>
-      <label className="field"><span>{{note:'备注内容', tag:'多个标签用逗号分隔', hyperlink:'链接地址', formula:'LaTeX 表达式', icon:'优先级'}[field]}</span>
-        {field === 'icon' ? <select autoFocus value={value} onChange={e => setValue(e.target.value)}>
-          <option value="">无</option>{[1,2,3,4,5].map(n => <option key={n} value={'priority_' + n}>{n}</option>)}</select>
-        : <textarea rows={field === 'note' ? 6 : 2} autoFocus value={value} onChange={e => setValue(e.target.value)} />}
-      </label>
+      {field === 'icon' ? <div className="node-icon-picker">{nodeIconList.map(group => <fieldset key={group.type}>
+        <legend>{group.name}</legend><div>{group.list.map(item => {
+          const id = group.type + '_' + item.name
+          return <button type="button" key={id} aria-label={group.name + ' ' + item.name} title={group.name + ' ' + item.name}
+            aria-pressed={icons.includes(id)} onClick={() => setIcons(prev => {
+              if (prev.includes(id)) return prev.filter(v => v !== id)
+              const rest = ['priority','progress'].includes(group.type) ? prev.filter(v => !v.startsWith(group.type + '_')) : prev
+              return [...rest,id]
+            })}><img alt="" src={'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(item.icon)} /></button>
+        })}</div></fieldset>)}</div> :
+        <label className="field"><span>{{note:'备注内容', tag:'多个标签用逗号分隔', hyperlink:'链接地址', formula:'LaTeX 表达式'}[field]}</span>
+          <textarea rows={field === 'note' ? 6 : 2} autoFocus value={value} onChange={e => setValue(e.target.value)} />
+        </label>}
       {error && <p role="alert">{error}</p>}
       <footer className="modal-footer"><button type="button" className="btn" onClick={onClose}>取消</button>
         <button className="btn primary" disabled={field === 'formula' && !value.trim()}>确定</button></footer>

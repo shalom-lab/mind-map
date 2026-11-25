@@ -1,3 +1,4 @@
+import { FrameDialog } from './FrameDialog'
 import { BaseStyles } from './BaseStyles'
 import { LayoutPreview } from './LayoutPreview'
 import { TextToolbar } from './TextToolbar'
@@ -63,6 +64,7 @@ export function EditorTools({ api, layout, theme, onChange, onLayout, onTheme }:
   const imageInput = useRef<HTMLInputElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const [hint, setHint] = useState('')
+  const [frameDialog, setFrameDialog] = useState(false)
   const [painting, setPainting] = useState(false)
   useEffect(() => {
     if (!api) return
@@ -96,12 +98,16 @@ export function EditorTools({ api, layout, theme, onChange, onLayout, onTheme }:
     }
     const clipboardNotice = (message: unknown) => setHint(String(message))
     active()
+    api.on('outer_frame_active', active)
+    api.on('outer_frame_deactivate', active)
     api.on('clipboard_notice', clipboardNotice)
     api.on('data_change', active)
     api.on('node_active', active)
     api.on('node_contextmenu', onNode)
     api.on('contextmenu', onCanvas)
     return () => {
+      api.off('outer_frame_active', active)
+      api.off('outer_frame_deactivate', active)
       api.off('clipboard_notice', clipboardNotice)
       api.off('data_change', active)
       api.off('node_active', active)
@@ -207,11 +213,14 @@ export function EditorTools({ api, layout, theme, onChange, onLayout, onTheme }:
       {action('图标', () => setField('icon'))}{action('公式', () => setField('formula'))}
       {action('概要', () => command('ADD_GENERALIZATION'))}
       {action('关联线', () => { api?.associativeLine.createLineFromActiveNode(); setHint('点击目标节点连接') })}
-      {action('外框', () => command('ADD_OUTER_FRAME'))}
+      <button type="button" className="btn" title="选择分支添加外框，或选中已有外框修改样式"
+        disabled={!api || (!api.outerFrame.getActiveOuterFrame() && !api.renderer.activeNodeList.some(n => !n.isRoot && !n.isGeneralization))}
+        onClick={() => setFrameDialog(true)}><ToolIcon label="外框" />外框</button>
       </div>
     </div>
     <div className="canvas-feedback" role="status">{hint || ((api?.renderer.activeNodeList.length ?? 0) > 1 ? `已选中 ${api?.renderer.activeNodeList.length} 个节点` : '')}</div>
     {api && <TextToolbar api={api} />}
+    {frameDialog && api && <FrameDialog api={api} onClose={() => setFrameDialog(false)} />}
     {field && api && <NodeField field={field} api={api} onClose={() => setField(null)} />}
     <nav className="map-rail" aria-label="编辑面板">{panels.map(p =>
       <button key={p} aria-expanded={panel === p} aria-controls={panel === p ? "editor-drawer" : undefined} aria-pressed={panel === p} onClick={() => setPanel(panel === p ? null : p)}><ToolIcon label={p} />{p}</button>)}</nav>
